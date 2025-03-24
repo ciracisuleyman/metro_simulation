@@ -1,116 +1,30 @@
-class Istasyon:
-    def __init__(self, idx: str, ad: str, hat: str):
-        self.idx = idx  # İstasyonun benzersiz kimliği
-        self.ad = ad    # İstasyonun adı
-        self.hat = hat  # İstasyonun bulunduğu hat
-        self.baglanti = []  # Bu istasyonla bağlantılı diğer istasyonlar
+# Sürücüsüz Metro Simülasyonu (Rota Optimizasyonu)
 
-    def baglanti_ekle(self, istasyon):
-        """Bu istasyon ile başka bir istasyon arasında bağlantı ekler."""
-        if istasyon not in self.baglanti:
-            self.baglanti.append(istasyon)
+Bu proje, bir şehirdeki metro ağında iki farklı algoritma kullanarak, kullanıcıların en az aktarmalı ve en hızlı rotaları bulmalarını sağlar. Kullanıcılar, başlangıç ve hedef istasyonları arasında en uygun rotayı seçebilirler.
 
-    def istasyon_bilgisi(self):
-        print(f"İstasyon: {self.ad}, Hat: {self.hat}")
+## Kullanılan Teknolojiler ve Kütüphaneler
 
+- **heapq**: A* algoritmasında öncelikli kuyruk (priority queue) kullanmak için, her adımda en düşük maliyeti olan istasyonu seçmek amacıyla bu kütüphane kullanılmıştır.
+- **collections**: Bu kütüphane, özellikle `defaultdict` ve `deque` veri yapılarını kullanarak, istasyonlar arasındaki bağlantıları yönetmek ve BFS için kuyruk oluşturmak için kullanılmıştır.
+- **typing**: Python'un tip açıklama (type hinting) sistemini kullanarak fonksiyon parametrelerinin ve dönüş türlerinin daha net ve anlaşılır olmasını sağlamak için kullanılmıştır.
 
-class MetroAgaci:
-    def __init__(self):
-        self.istasyonlar = {}  # İstasyonların listesi (idx -> Istasyon)
+## Algoritmaların Çalışma Mantığı
 
-    def istasyon_ekle(self, idx: str, ad: str, hat: str):
-        """Yeni bir istasyon ekler."""
-        if idx not in self.istasyonlar:
-            yeni_istasyon = Istasyon(idx, ad, hat)
-            self.istasyonlar[idx] = yeni_istasyon
+### BFS (Breadth-First Search) Algoritması
 
-    def baglanti_ekle(self, idx1: str, idx2: str, mesafe: int):
-        """İki istasyon arasına bağlantı ekler."""
-        if idx1 in self.istasyonlar and idx2 in self.istasyonlar:
-            istasyon1 = self.istasyonlar[idx1]
-            istasyon2 = self.istasyonlar[idx2]
-            istasyon1.baglanti_ekle(istasyon2)
-            istasyon2.baglanti_ekle(istasyon1)
-            print(f"{istasyon1.ad} ve {istasyon2.ad} arasında {mesafe} dakikalık mesafe eklendi.")
-        else:
-            print("Geçersiz istasyonlar!")
+BFS algoritması, her adımda bir seviyedeki tüm komşuları ziyaret ederek, en kısa yolu bulmaya çalışan bir algoritmadır.
 
-    def bfs(self, baslangic_idx: str, hedef_idx: str):
-        """BFS algoritması ile bir istasyondan hedef istasyona ulaşma."""
-        if baslangic_idx not in self.istasyonlar or hedef_idx not in self.istasyonlar:
-            print("Geçersiz başlangıç veya hedef istasyonu!")
-            return
+- **Başlangıç**: Başlangıç istasyonundan başlar ve komşu istasyonlarını sırayla ziyaret eder.
+- **Kuyruk Yapısı**: İlk başta sadece başlangıç istasyonu kuyruğa eklenir.
+- **Ziyaret Edilen İstasyonlar**: Her istasyon ziyaret edildiğinde, komşu istasyonları ziyaret edilmek üzere kuyruğa eklenir.
 
-        baslangic_istasyon = self.istasyonlar[baslangic_idx]
-        hedef_istasyon = self.istasyonlar[hedef_idx]
+BFS tüm olasılıkları denemez, en verimli yoldan gitmediğini anladığı gibi o yolu kuyruk dediğimiz kısımdan siler.
+Burada en az aktarmayı bulmaya çalışıyor, dolayısıyla algoritma başlangıç noktasından ilk başta komşularını ziyaret eder ve en az aktarma bulma olasılığı devam ettiği sürece ziyaret ettiği istasyon ve o istasyona gelinceye kadar geçtiği istasyonların listesi deque ile oluşturulan kuyruk kısmında değiştirilemeyen yapı olan tupple içinde tutulur. BFS bu denemeleri yaparken daha önce uğradığı istasyona geri dönmez. Bu şekilde sonunda en az aktarma ile ulaşılan hedef ve bu esnada geçilen istasyonların bilgisi kuyruk kısmında kalır.
 
-        # BFS için gerekli yapılar
-        ziyaret_edilen = set()  # Ziyaret edilen istasyonlar
-        queue = [(baslangic_istasyon, [baslangic_istasyon.ad])]  # Kuyruk (istasyon, yol)
+### A* (A Star) Algoritması
 
-        while queue:
-            istasyon, yol = queue.pop(0)  # Kuyruktan bir istasyon al
+A* algoritması, hem **gerçek mesafe** hem de **hedefe olan tahmini mesafe** (heuristic) bilgilerini kullanarak, en hızlı rotayı bulmaya çalışır.
 
-            if istasyon == hedef_istasyon:
-                print("BFS ile hedefe ulaşıldı! Yol:", " -> ".join(yol))
-                return
+- **Başlangıç ve Hedef İstasyonu**: Başlangıç istasyonundan hedef istasyona olan rotayı bulmaya çalışır.
+- **Öncelikli Kuyruk**: Öncelikli kuyruk kullanılır ve her istasyonun maliyeti hesaplanarak sıradaki istasyonlar belirlenir.
 
-            if istasyon.idx not in ziyaret_edilen:
-                ziyaret_edilen.add(istasyon.idx)
-                for baglanti in istasyon.baglanti:
-                    if baglanti.idx not in ziyaret_edilen:
-                        queue.append((baglanti, yol + [baglanti.ad]))
-
-        print("BFS ile hedefe ulaşılamadı.")
-
-    def a_star(self, baslangic_idx: str, hedef_idx: str):
-        """A* algoritması ile bir istasyondan hedef istasyona ulaşma."""
-        if baslangic_idx not in self.istasyonlar or hedef_idx not in self.istasyonlar:
-            print("Geçersiz başlangıç veya hedef istasyonu!")
-            return
-
-        # A* algoritmasının varsayılan heuristik fonksiyonu: Hedefe ulaşana kadar en kısa yolu bulmak.
-        def heuristik(istasyon, hedef_istasyon):
-            return abs(len(istasyon.baglanti) - len(hedef_istasyon.baglanti))
-
-        baslangic_istasyon = self.istasyonlar[baslangic_idx]
-        hedef_istasyon = self.istasyonlar[hedef_idx]
-
-        # A* için gerekli yapılar
-        open_list = [(baslangic_istasyon, 0, [baslangic_istasyon.ad])]  # (istasyon, maliyet, yol)
-        closed_list = set()
-
-        while open_list:
-            open_list.sort(key=lambda x: x[1])  # Maliyeti en düşük olanı al
-            istasyon, maliyet, yol = open_list.pop(0)
-
-            if istasyon == hedef_istasyon:
-                print("A* ile hedefe ulaşıldı! Yol:", " -> ".join(yol))
-                return
-
-            if istasyon.idx not in closed_list:
-                closed_list.add(istasyon.idx)
-                for baglanti in istasyon.baglanti:
-                    if baglanti.idx not in closed_list:
-                        open_list.append((baglanti, maliyet + 1 + heuristik(baglanti, hedef_istasyon), yol + [baglanti.ad]))
-
-        print("A* ile hedefe ulaşılamadı.")
-
-
-# Uygulama kısmı
-metro_agaci = MetroAgaci()
-
-# İstasyonlar ekleniyor
-metro_agaci.istasyon_ekle("K1", "Kızılay", "Kırmızı Hat")
-metro_agaci.istasyon_ekle("K2", "Ulus", "Kırmızı Hat")
-metro_agaci.istasyon_ekle("K3", "TCDD", "Mavi Hat")
-metro_agaci.istasyon_ekle("K4", "Çıkrıkçılar", "Mavi Hat")
-
-# Bağlantılar ekleniyor
-metro_agaci.baglanti_ekle("K1", "K2", 2)  # Kızılay ile Ulus arasındaki bağlantı
-metro_agaci.baglanti_ekle("K2", "K3", 3)  # Ulus ile TCDD arasındaki bağlantı
-metro_agaci.baglanti_ekle("K3", "K4", 5)  # TCDD ile Çıkrıkçılar arasındaki bağlantı
-
-# Algoritmalar çalıştırılıyor
-metro_agaci.bfs("K1", "K4")  # Kızılay'dan Çıkrıkçılar'a BFS ile yol bulma
-metro_agaci.a_star("K1", "K4")  # Kızılay'dan Çıkrıkçılar'a A* ile yol bulma
